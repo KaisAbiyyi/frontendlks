@@ -65,12 +65,12 @@ export default {
           password: this.password
         })
         .then((result) => {
-          console.log(result)
           if (result.status == 200) {
             this.router.push('/')
           }
         })
         .catch((err) => {
+          console.log(err)
           this.$swal({
             icon: 'error',
             title: 'Oops...',

@@ -14,7 +14,7 @@
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse d-flex justify-content-between" id="navbarNavAltMarkup">
-        <div class="navbar-nav">
+        <div class="navbar-nav" v-if="this.role === 'admin'">
           <router-link to="/" class="nav-item nav-link active">Poll</router-link>
         </div>
         <div class="navbar-nav">
@@ -37,28 +37,44 @@ export default {
     return {
       store: useStore(),
       router: useRouter(),
-      token: localStorage.getItem('token')
+      token: localStorage.getItem('token'),
+      role: localStorage.getItem('role')
     }
   },
   methods: {
     logout() {
-      axios
-        .post('user/logout', {
-          headers: {
-            Authorization: 'Bearer ' + this.token
-          }
-        })
-        .then((res) => {
-          localStorage.removeItem('token')
-          this.router.push('/login')
-        })
-        .catch((err) => {
-          this.$swal({
-            icon: 'error',
-            title: 'Oops...',
-            text: err.response.data.message
-          })
-        })
+      this.$swal({
+        title: 'Are you sure?',
+        showCancelButton: true,
+        confirmButtonText: 'Sure!'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          axios
+            .post(
+              'user/logout',
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${this.token}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            )
+            .then((res) => {
+              localStorage.removeItem('token')
+              localStorage.removeItem('role')
+              this.router.push('/login')
+              this.store.dispatch('logout')
+            })
+            .catch((err) => {
+              this.$swal({
+                icon: 'error',
+                title: 'Oops...',
+                text: err.response.data.message
+              })
+            })
+        }
+      })
     }
   }
 }

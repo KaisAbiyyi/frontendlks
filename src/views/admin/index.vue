@@ -115,13 +115,83 @@
             <td>{{ poll.title }}</td>
             <td>{{ poll.description }}</td>
             <td>
-              <div v-for="choice in poll.result" :key="choice.id">{{ choice.name + ', ' }}</div>
+              <div v-for="choice in poll.choices" :key="choice.id">{{ choice.name + ', ' }}</div>
             </td>
             <td>{{ poll.deadline }}</td>
             <td>
               <div class="btn-group" role="group">
-                <button type="button" class="btn btn-success">Detail</button>
-                <button type="button" class="btn btn-warning">Edit</button>
+                <button
+                  type="button"
+                  class="btn btn-success"
+                  data-bs-toggle="modal"
+                  data-bs-target="#exampleModal1"
+                  @click="showPoll(poll.id)"
+                >
+                  Detail
+                </button>
+                <div
+                  class="modal fade"
+                  id="exampleModal1"
+                  tabindex="-1"
+                  aria-labelledby="exampleModalLabel"
+                  aria-hidden="true"
+                >
+                  <div class="modal-dialog modal-dialog-centered rounded-5">
+                    <div class="modal-content text-white bg-success border-0 rounded-4">
+                      <div class="modal-body">
+                        <div class="row">
+                          <div class="d-flex align-items-center w-100 justify-content-between">
+                            <h3 class="p-0 m-0">{{ pollDetail.title }}</h3>
+                            <div
+                              class="badge mt-3"
+                              :class="{
+                                'bg-warning': new Date(pollDetail.deadline) > new Date(),
+                                'text-dark': new Date(pollDetail.deadline) > new Date(),
+                                'bg-danger': new Date(pollDetail.deadline) < new Date()
+                              }"
+                            >
+                              {{ pollDetail.deadline }}
+                            </div>
+                          </div>
+                          <div class="p-3">
+                            <div class="p-3 bg-light text-dark rounded-4 mt-3">
+                              <div class="mb-3 row">
+                                <h6 for="description">Description</h6>
+                                <span>{{ pollDetail.description }}</span>
+                              </div>
+                              <div class="row">
+                                <h6 for="description">Result</h6>
+                                <div
+                                  v-for="choice in pollDetail.choices"
+                                  :key="choice.id"
+                                  class="mb-2"
+                                >
+                                  <div class="p-0 m-0 d-flex justify-content-between w-100">
+                                    <span>{{ choice.name }}</span>
+                                    <span>{{ (choice.percentage ?? 0) + '%' }}</span>
+                                  </div>
+                                  <div
+                                    class="progress p-0"
+                                    role="progressbar"
+                                    aria-label="Info example"
+                                    :aria-valuenow="choice.percentage"
+                                    aria-valuemin="0"
+                                    aria-valuemax="100"
+                                  >
+                                    <div
+                                      class="progress-bar bg-success rounded-2"
+                                      :style="{ width: choice.percentage + '%' }"
+                                    ></div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <button type="button" class="btn btn-danger" @click="deletePoll(poll.id)">
                   Delete
                 </button>
@@ -145,11 +215,18 @@ export default {
       polls: [],
       token: localStorage.getItem('token'),
       router: useRouter(),
+      role: localStorage.getItem('role'),
       pollData: {
         title: '',
         description: '',
         deadline: '',
         choices: ['']
+      },
+      pollDetail: {
+        title: '',
+        description: '',
+        deadline: '',
+        choices: []
       }
     }
   },
@@ -175,6 +252,19 @@ export default {
           })
         })
     },
+    showPoll(id) {
+      axios
+        .get('poll/' + id, {
+          headers: {
+            Authorization: 'Bearer ' + this.token
+          }
+        })
+        .then((res) => {
+          console.log(res.data)
+          this.pollDetail = res.data.data
+        })
+        .catch((err) => {})
+    },
     createPoll() {
       axios
         .post(
@@ -196,6 +286,7 @@ export default {
           this.getPoll()
         })
         .catch((err) => {
+          console.log(err)
           this.$swal({
             icon: 'error',
             title: 'Oops...',
@@ -204,29 +295,40 @@ export default {
         })
     },
     deletePoll(id) {
-      axios
-        .delete('poll/' + id, {
-          headers: {
-            Authorization: 'Bearer ' + this.token
-          }
-        })
-        .then((res) => {
-          this.polls.splice(this.polls.indexOf(id - 1), 1)
-          this.$swal({
-            icon: 'success',
-            text: res.data.message
-          })
-        })
-        .catch((err) => {
-          this.$swal({
-            icon: 'error',
-            text: err
-          })
-        })
+      this.$swal({
+        title: 'Are you sure?',
+        showCancelButton: true,
+        confirmButtonText: 'Sure!'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          axios
+            .delete('poll/' + id, {
+              headers: {
+                Authorization: 'Bearer ' + this.token
+              }
+            })
+            .then((res) => {
+              this.polls.splice(this.polls.indexOf(id - 1), 1)
+              this.$swal({
+                icon: 'success',
+                text: res.data.message
+              })
+            })
+            .catch((err) => {
+              this.$swal({
+                icon: 'error',
+                text: err
+              })
+            })
+        }
+      })
     }
   },
   mounted() {
     this.getPoll()
+    if (this.role === 'user') {
+      this.router.push('/dashboard')
+    }
   }
 }
 </script>

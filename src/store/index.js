@@ -3,7 +3,8 @@ import { createStore } from "vuex";
 
 const store = createStore({
     state: {
-        token: localStorage.getItem('token')
+        token: localStorage.getItem('token'),
+        role: localStorage.getItem('role')
     },
     getters: {
         isLoggedIn: (state) => state.token != null
@@ -14,22 +15,17 @@ const store = createStore({
 
             if (response.status == 200) {
                 commit('SET_TOKEN', response.data.token)
+                localStorage.setItem('role', response.data.data.role)
                 return response
             }
             return false
         },
         async logout({ commit }) {
-            let response = await axios.post('user/logout', {
-                headers: {
-                    Authorization: 'Bearer ' + this.state.token
-                }
-            })
-
-            if (response.status == 200) {
-                commit('CLEAR_TOKEN')
-                return true
-            }
-            return false
+            commit('CLEAR_TOKEN')
+            return true
+        },
+        getRole() {
+            return this.state.role
         }
     },
     mutations: {
@@ -41,8 +37,6 @@ const store = createStore({
         },
         CLEAR_TOKEN(state) {
             state.token = null
-
-            localStorage.removeItem('token')
             delete axios.defaults.headers.common['Authorization']
         }
     }
